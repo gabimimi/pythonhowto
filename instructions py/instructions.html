@@ -1,0 +1,357 @@
+<!-- instructions.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>6.100A-Style Lab: Headline Analyzer (Python + Flask)</title>
+  <link rel="stylesheet" href="instructions.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="course">6.100A-style Lab</div>
+          <div class="title">Headline Analyzer Backend (Flask)</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#overview">Overview</a>
+        <a href="#precode">Before Functions</a>
+        <a href="#functions">What is a Function?</a>
+        <a href="#tasks">Tasks</a>
+        <a href="#run">Run & Test</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="overview" class="card">
+      <h1>Project Goal</h1>
+      <p>
+        You are building a <b>Python backend</b> that analyzes a headline and returns a JSON response:
+        a risk score (0–100), a color label (GREEN / YELLOW / RED), and human-friendly reasons.
+      </p>
+
+      <div class="callout">
+        <h3>What you will practice</h3>
+        <ul>
+          <li>Writing <b>helper functions</b> (small building blocks)</li>
+          <li>Using <b>loops</b>, <b>if</b> statements, <b>strings</b>, and <b>lists</b></li>
+          <li>Understanding basic <b>web requests</b>: client → server → JSON response</li>
+        </ul>
+      </div>
+
+      <p class="small">
+        You do <b>not</b> need advanced programming knowledge. If you can do loops and simple conditions,
+        you can complete this lab.
+      </p>
+    </section>
+
+    <section id="precode" class="card">
+      <h2>Explain the Code Before the First Function</h2>
+      <p class="small">This section explains every line <b>until the first function</b> (<code>tokenize</code>).</p>
+
+      <div class="codebox">
+<pre><code># app.py
+from __future__ import annotations
+
+import re
+from typing import Iterable
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+</code></pre>
+      </div>
+
+      <div class="grid2">
+        <div class="note">
+          <h3><code>from __future__ import annotations</code></h3>
+          <p>
+            This helps Python understand type hints (like <code>list[str]</code>) more smoothly.
+            You can think of it as: “Python, please be more flexible with type annotations.”
+          </p>
+        </div>
+
+        <div class="note">
+          <h3><code>import re</code></h3>
+          <p>
+            <code>re</code> stands for <b>regular expressions</b>. It helps search and extract patterns from text.
+            Example: finding words, matching “no vas a creer”, or detecting quotes.
+          </p>
+        </div>
+
+        <div class="note">
+          <h3><code>from typing import Iterable</code></h3>
+          <p>
+            This is a type hint helper. An <b>Iterable</b> is something you can loop over (like a list or set).
+            You can ignore it for now if it feels confusing.
+          </p>
+        </div>
+
+        <div class="note">
+          <h3><code>Flask</code> + <code>CORS</code></h3>
+          <p>
+            <b>Flask</b> creates the web server. It listens for requests like:
+            “Hey server, analyze this headline.”
+          </p>
+          <p>
+            <b>CORS</b> is a browser safety rule. Our frontend and backend may run in different places,
+            so <code>CORS(app)</code> tells the browser: “It’s OK to call this backend from the frontend.”
+          </p>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <h3>Important idea: Frontend vs Backend</h3>
+        <p>
+          The <b>frontend</b> (HTML/CSS) is what the user sees. The <b>backend</b> (Flask/Python) is the brain.
+          The frontend sends text to the backend, the backend returns JSON.
+        </p>
+      </div>
+    </section>
+
+    <section id="functions" class="card">
+      <h2>What is a Function?</h2>
+      <p>
+        A function is a <b>named mini-program</b>. You give it input (arguments), it does work, and returns output.
+      </p>
+
+      <div class="func-visual">
+        <div class="pipe">
+          <div class="node input">
+            <div class="cap">INPUT</div>
+            <div class="body">text</div>
+          </div>
+
+          <div class="arrow">
+            <div class="car" aria-hidden="true"></div>
+            <div class="line"></div>
+          </div>
+
+          <div class="node func">
+            <div class="cap">FUNCTION</div>
+            <div class="body">caps_ratio(text)</div>
+          </div>
+
+          <div class="arrow">
+            <div class="car car2" aria-hidden="true"></div>
+            <div class="line"></div>
+          </div>
+
+          <div class="node output">
+            <div class="cap">OUTPUT</div>
+            <div class="body">0.25</div>
+          </div>
+        </div>
+
+        <p class="small">
+          In this lab, we write many small helper functions (Tasks 1–8). Then the big function
+          <code>analyze</code> calls them to build the final answer.
+        </p>
+      </div>
+
+      <div class="callout">
+        <h3>Why use helper functions?</h3>
+        <ul>
+          <li>Easier to understand (one idea per function)</li>
+          <li>Easier to test (you can test each piece)</li>
+          <li>Easier to fix (bugs are smaller)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="tasks" class="card">
+      <h2>Tasks</h2>
+      <p class="small">
+        You will fill in the code marked <code># your code here</code> in <code>app.py</code>.
+        Each task is one helper function that <code>analyze()</code> depends on.
+      </p>
+
+      <div class="task">
+        <h3>Task 1 — <code>caps_ratio(text)</code></h3>
+        <p><b>Goal:</b> compute the ratio of uppercase letters among letters only.</p>
+        <ul>
+          <li>Ignore digits, spaces, punctuation.</li>
+          <li>If there are <b>no letters</b>, return <code>0.0</code>.</li>
+        </ul>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>Make a list: <code>letters = [c for c in text if c.isalpha()]</code></li>
+            <li>Count uppercase with a loop or <code>sum(1 for c in letters if c.isupper())</code></li>
+            <li>Return <code>caps / len(letters)</code></li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="task">
+        <h3>Task 2 — <code>count_phrases_or_words(lower_raw, words, vocab)</code></h3>
+        <p>
+          <b>Goal:</b> count vocab matches. Some items are single words, some are phrases like <code>"última hora"</code>.
+        </p>
+        <ul>
+          <li>If the vocab item contains a space, check if it appears in <code>lower_raw</code>.</li>
+          <li>Otherwise, count how many times it appears in the token list <code>words</code>.</li>
+        </ul>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>Loop: <code>for v in vocab:</code></li>
+            <li>Phrase test: <code>if " " in v</code></li>
+            <li>Word count: <code>words.count(v)</code></li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="task">
+        <h3>Task 3 — <code>count_patterns(lower_raw, patterns)</code></h3>
+        <p><b>Goal:</b> count how many regex patterns appear at least once.</p>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>Use <code>re.search(pattern, lower_raw)</code></li>
+            <li>Each pattern counts as 1 hit if it appears.</li>
+            <li>You can do a loop and increment <code>hits</code>.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="task">
+        <h3>Task 4 — <code>count_hiding_words(words)</code></h3>
+        <p>
+          <b>Goal:</b> count vague “hiding words” like <i>this / that / something</i> in Spanish:
+          <code>esto, eso, aquello, algo, alguien, cosa...</code>
+        </p>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>Loop over <code>HIDING_WORDS</code> and add <code>words.count(w)</code></li>
+            <li>This is just counting tokens (no regex needed).</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="task">
+        <h3>Task 5 — <code>count_intensifiers(lower_raw, words)</code></h3>
+        <p>
+          <b>Goal:</b> detect exaggeration boosters like <code>ultra</code>, <code>mega</code>, <code>hiper</code>,
+          <code>súper</code>, <code>archi</code>, <code>re</code>.
+        </p>
+        <ul>
+          <li>Count exact tokens (<code>mega</code>)</li>
+          <li>Count prefix-attached forms (<code>megacaro</code>, <code>ultra-rápido</code>)</li>
+        </ul>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>Exact: <code>sum(1 for w in words if w in INTENSIFIER_PREFIXES)</code></li>
+            <li>Prefix regex: <code>r"\bmega[-]?[a-záéíóúüñ]"</code></li>
+            <li>Use <code>re.findall</code> to count matches.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="task">
+        <h3>Task 6 — <code>count_suspicious_quotes(raw, lower_raw)</code></h3>
+        <p>
+          <b>Goal:</b> find short quoted fragments like <code>"truth"</code> or <code>'expert'</code> and mark them suspicious
+          <b>only if</b> there is no attribution word like “said / according to”.
+        </p>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>First check attribution: <code>any(a in lower_raw for a in QUOTE_ATTRIBUTION_WORDS)</code></li>
+            <li>Find quotes with regex: <code>re.findall(r'(["\'])([^"\']{1,40})\1', raw)</code></li>
+            <li>Tokenize inside quotes and penalize if 1–3 words.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="task">
+        <h3>Task 7 — <code>add_points(score, reasons, condition, points, reason)</code></h3>
+        <p>
+          <b>Goal:</b> a helper for scoring. If <code>condition</code> is true, add points and append the reason.
+        </p>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>If condition and points &gt; 0: <code>reasons.append(reason)</code> and return <code>score + points</code></li>
+            <li>Else: return <code>score</code></li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="task">
+        <h3>Task 8 — <code>label_from_score(score)</code></h3>
+        <p>
+          <b>Goal:</b> convert number into a label:
+          <code>0–33 GREEN</code>, <code>34–66 YELLOW</code>, <code>67–100 RED</code>.
+        </p>
+        <details>
+          <summary>Hints (click)</summary>
+          <ul>
+            <li>Use <code>if</code> / <code>elif</code> / <code>else</code></li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="callout">
+        <h3>After tasks are done…</h3>
+        <p>
+          Read <code>analyze()</code> like a story: it collects metrics → adds points → picks a label → returns JSON.
+          The tasks make <code>analyze()</code> work.
+        </p>
+      </div>
+    </section>
+
+    <section id="run" class="card">
+      <h2>Run & Test</h2>
+
+      <h3>1) Install</h3>
+      <div class="codebox">
+<pre><code>cd backend
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# Mac/Linux: source .venv/bin/activate
+pip install flask flask-cors
+python app.py</code></pre>
+      </div>
+
+      <h3>2) Quick test (in browser)</h3>
+      <p class="small">Open this URL:</p>
+      <div class="codebox">
+<pre><code>http://127.0.0.1:5000/health</code></pre>
+      </div>
+
+      <h3>3) Test the analyzer (optional)</h3>
+      <p class="small">
+        If you have a tool like Postman, Insomnia, or a VS Code REST client, send:
+      </p>
+      <div class="codebox">
+<pre><code>POST http://127.0.0.1:5000/analyze
+Content-Type: application/json
+
+{"text":"¡ÚLTIMA HORA! Esto es MEGA INCREÍBLE!!!"}</code></pre>
+      </div>
+
+      <div class="callout warn">
+        <h3>Reminder</h3>
+        <p>
+          This analyzer does <b>not</b> decide what is “true”. It only detects <b>signals</b> of sensationalism
+          using simple rules.
+        </p>
+      </div>
+    </section>
+
+
+  </main>
+</body>
+</html>
+
